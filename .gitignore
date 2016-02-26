@@ -1,0 +1,92 @@
+#include <stdio.h>
+#include <cuda.h>
+#include <stdlib.h>
+#include <time.h>
+#define N 32
+#define limit 520
+
+
+
+__global__ void add(int *a,int *b, int *c){
+       
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+       
+    if (i< N)
+    //*c = *a + *b;
+    c[i] = a[i] + b[i];
+}
+
+void llenar(int *vect){
+   
+    for (int i=0; i<N; i++){
+         vect[i]= i;
+    }
+}
+
+int imprimir(int *vect){
+  
+  	printf("el vector es: ");
+   
+    for (int i=0; i<N; i++){
+       
+         printf(" %d",vect[i]);
+    }
+  
+  	printf("\n");
+    return 0;
+}
+
+
+  
+
+int main(void) {
+   
+    int *a, *b, *c;       
+    int *d_a, *d_b, *d_c;   
+    int size = N * sizeof(int);
+  
+  	clock_t t_ini, t_fin;
+ 	  double secs;
+  	t_ini = clock();
+  
+  	a = (int *)malloc(sizeof(int) *size);
+    b = (int *)malloc(sizeof(int) *size);
+    c = (int *)malloc(size);
+  
+  	llenar(a);
+    llenar(b);
+
+  	cudaMalloc((void **)&d_a, size);
+		cudaMalloc((void **)&d_b, size);
+		cudaMalloc((void **)&d_c, size);
+    
+    c = (int *)malloc(size);
+   
+    cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_b, b, size, cudaMemcpyHostToDevice);
+
+    //add<<<n,1>>>(d_a, d_b, d_c);
+  
+     add<<<N/limit,limit>>>(d_a, d_b, d_c);
+
+    cudaMemcpy(c, d_c, size, cudaMemcpyDeviceToHost);
+  
+    imprimir(a);
+    imprimir(b);
+    imprimir(c);
+  
+  	t_fin = clock();
+
+    secs = (double)(t_fin - t_ini) / CLOCKS_PER_SEC;
+    printf("%.16g segundos\n", secs);
+  	
+   
+    free(a);
+    free(b);
+    free(c);
+    cudaFree(d_a);
+    cudaFree(d_b);
+    cudaFree(d_c);
+    return 0;
+   
+}
